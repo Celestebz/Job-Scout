@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs (保留最近的结构，但忽略所有.log文件)
+logs/*.log
+*.log
+
+# Backup
+backup/*.json
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Sensitive data
+*.env
+.env
+secrets/
+
+# XLSX files (我们会通过GitHub Actions自动提交，但本地开发时可以忽略)
+# result/*.xlsx

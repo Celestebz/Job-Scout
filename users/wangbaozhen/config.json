@@ -1,0 +1,60 @@
+{
+  "user_id": "wangbaozhen",
+  "name": "王宝珍",
+  "created_at": "2026-03-02",
+
+  "search_preferences": {
+    "location": "深圳",
+    "location_radius": 0,
+    "remote_allowed": false,
+    "target_companies": ["字节跳动", "腾讯", "阿里", "SHEIN"],
+    "company_types": ["大厂", "外企", "出海公司"],
+    "industries": ["出海", "AI", "AIGC", "跨境电商"],
+    "job_types": ["运营", "产品运营", "海外运营", "增长运营"]
+  },
+
+  "salary_expectation": {
+    "min": 12000,
+    "target": 15000,
+    "max": 18000,
+    "currency": "CNY",
+    "period": "monthly"
+  },
+
+  "matching_config": {
+    "quality_threshold": 70,
+    "fallback_threshold": 60,
+    "daily_output_limit": 5
+  },
+
+  "search_keywords": [
+    "深圳 出海运营",
+    "深圳 海外运营",
+    "深圳 AI 运营",
+    "深圳 AIGC 运营",
+    "CapCut 运营",
+    "TikTok 运营",
+    "SHEIN 运营",
+    "字节跳动 出海",
+    "腾讯 海外",
+    "外企 运营 深圳"
+  ],
+
+  "excluded_keywords": [
+    "销售",
+    "客服",
+    "实习",
+    "外包",
+    "派遣"
+  ],
+
+  "notifications": {
+    "enabled": true,
+    "email": null,
+    "webhook_url": null
+  },
+
+  "last_search": null,
+  "total_jobs_found": 0,
+  "total_reports_generated": 0
+}

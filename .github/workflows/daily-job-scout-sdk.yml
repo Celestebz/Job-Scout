@@ -1,0 +1,278 @@
+name: Daily Job Scout (Claude Code CLI)
+
+# 触发条件
+on:
+  # 定时执行：UTC 01:00 = 北京时间 09:00
+  schedule:
+    - cron: '0 1 * * *'
+
+  # 支持手动触发
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: '测试模式（快速验证）'
+        required: false
+        type: boolean
+        default: false
+
+# 环境变量
+env:
+  PYTHON_VERSION: '3.11'
+  PROJECT_DIR: '/__w/面试skill/面试skill/skills/job-scout'
+  USER_ID: 'wangbaozhen'
+
+jobs:
+  job-scout-daily:
+    name: Execute Daily Job Scout
+    runs-on: ubuntu-latest
+    timeout-minutes: 60  # 最大运行时间60分钟
+
+    # 权限配置
+    permissions:
+      contents: write  # 需要写入权限来提交结果
+      issues: write    # 可选：用于创建issue报告错误
+
+    steps:
+      # Step 1: 检出代码
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0  # 获取完整历史
+
+      # Step 2: 设置Python环境
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      # Step 3: 安装Python依赖
+      - name: Install Python dependencies
+        run: |
+          echo "📦 Installing Python dependencies..."
+          python -m pip install --upgrade pip
+          pip install openpyxl pandas timeout-decorator
+
+      # Step 4: 安装Claude Code CLI
+      - name: Setup Claude Code CLI
+        run: |
+          echo "🔧 Installing Claude Code CLI..."
+          curl -fsSL https://claude.ai/install.sh | sh
+          echo "$HOME/.claude/bin" >> $GITHUB_PATH
+
+          # 验证安装
+          claude --version || {
+            echo "❌ Claude Code CLI installation failed"
+            exit 1
+          }
+          echo "✅ Claude Code CLI installed successfully"
+          claude --version
+
+      # Step 5: 创建必要的目录
+      - name: Create directories
+        run: |
+          echo "📁 Creating directories..."
+          mkdir -p logs
+          mkdir -p result
+          mkdir -p backup
+
+          # 设置时区为北京时间
+          sudo timedatectl set-timezone Asia/Shanghai
+          echo "⏰ Timezone set to Asia/Shanghai"
+          date
+
+      # Step 6: 显示环境信息
+      - name: Display execution environment
+        run: |
+          echo "=========================================="
+          echo "📊 Job Scout Scheduled Execution"
+          echo "=========================================="
+          echo "📅 Date: $(date '+%Y-%m-%d %H:%M:%S %Z')"
+          echo "👤 User ID: ${{ env.USER_ID }}"
+          echo "🌏 Timezone: Asia/Shanghai (UTC+8)"
+          echo "🔗 Workflow: ${{ github.workflow }}"
+          echo "🏃 Run Number: ${{ github.run_number }}"
+          echo "💻 Runner OS: $(uname -a)"
+          echo "🐍 Python: $(python --version)"
+          echo "=========================================="
+
+      # Step 7: 备份job_history.json
+      - name: Backup job history database
+        run: |
+          if [ -f "job_history.json" ]; then
+            BACKUP_FILE="backup/job_history_$(date +%Y%m%d_%H%M%S).json"
+            cp job_history.json "$BACKUP_FILE"
+            echo "💾 Backup created: $BACKUP_FILE"
+            echo "📊 Total jobs in database:"
+            cat job_history.json | jq '.total_jobs // 0'
+
+            # 只保留最近30天的备份
+            find backup/ -name "job_history_*.json" -mtime +30 -delete
+          else
+            echo "ℹ️ No existing job_history.json found"
+          fi
+
+      # Step 8: 执行Job Scout技能
+      - name: Run Job Scout skill
+        id: job_scout
+        run: |
+          echo "🚀 Starting Job Scout execution..."
+          echo ""
+
+          # 记录开始时间
+          START_TIME=$(date +%s)
+
+          # 执行Python脚本（内部调用Claude Code CLI）
+          if [ "${{ github.event.inputs.test_mode }}" = "true" ]; then
+            echo "🧪 Running in TEST MODE"
+            python scripts/github_actions_job_scout.py
+          else
+            echo "🏢 Running in PRODUCTION MODE"
+            python scripts/github_actions_job_scout.py
+          fi
+
+          EXIT_CODE=$?
+          END_TIME=$(date +%s)
+          DURATION=$((END_TIME - START_TIME))
+
+          echo ""
+          echo "⏱️ Execution completed in ${DURATION}s ($(($DURATION / 60))m $(($DURATION % 60))s)"
+          echo "📊 Exit code: $EXIT_CODE"
+
+          # 保存执行摘要
+          if [ -f "logs/last-run-summary.txt" ]; then
+            echo ""
+            echo "📋 Execution Summary:"
+            echo "=========================================="
+            cat logs/last-run-summary.txt
+            echo "=========================================="
+          fi
+
+          exit $EXIT_CODE
+        continue-on-error: false
+
+      # Step 9: 提交结果到Git仓库
+      - name: Commit results to repository
+        if: success()
+        run: |
+          echo "📤 Committing results to repository..."
+
+          # 配置Git
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          # 添加job_history.json（必须，用于去重）
+          git add job_history.json
+
+          # 添加最新的XLSX报告
+          if ls result/*.xlsx 1> /dev/null 2>&1; then
+            git add result/*.xlsx
+
+            # 清理超过30天的旧报告
+            find result/ -name "*.xlsx" -mtime +30 -delete
+          fi
+
+          # 添加执行摘要
+          if [ -f "logs/last-run-summary.txt" ]; then
+            git add logs/last-run-summary.txt
+          fi
+
+          # 检查是否有变更
+          if git diff --staged --quiet; then
+            echo "ℹ️ No changes to commit"
+          else
+            # 提交变更
+            git commit -m "🤖 Automated daily job scout run
+
+            - Run: #${{ github.run_number }}
+            - Date: $(date '+%Y-%m-%d %H:%M:%S')
+            - User: ${{ env.USER_ID }}
+            [skip ci]"
+
+            # 推送到GitHub
+            git push
+
+            echo "✅ Results committed and pushed to repository"
+          fi
+
+      # Step 10: 上传完整日志到Artifacts
+      - name: Upload logs as artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: job-scout-logs-${{ github.run_number }}
+          path: |
+            logs/*.log
+            logs/last-run-summary.txt
+            logs/execution-result-*.json
+            result/*.xlsx
+          retention-days: 30  # 保存30天
+          if-no-files-found: warn
+
+      # Step 11: 在GitHub页面显示执行摘要
+      - name: Generate final summary
+        if: always()
+        run: |
+          echo "## 📊 Job Scout执行结果" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **状态**: ${{ steps.job_scout.outcome == 'success' && '✅ 成功' || '❌ 失败' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **执行时间**: $(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_STEP_SUMMARY
+          echo "- **运行编号**: #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # 显示生成的文件
+          if ls result/*.xlsx 1> /dev/null 2>&1; then
+            echo "### 📦 生成的文件" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            ls -lh result/*.xlsx >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # 显示数据库统计
+          if [ -f "job_history.json" ]; then
+            TOTAL_JOBS=$(jq '.total_jobs // 0' job_history.json)
+            LAST_UPDATE=$(jq -r '.last_updated // "unknown"' job_history.json)
+
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 🗄️ 数据库状态" >> $GITHUB_STEP_SUMMARY
+            echo "- 总岗位数: **$TOTAL_JOBS**" >> $GITHUB_STEP_SUMMARY
+            echo "- 最后更新: $LAST_UPDATE" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # 显示执行摘要
+          if [ -f "logs/last-run-summary.txt" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📋 执行摘要" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat logs/last-run-summary.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # 显示日志位置
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📝 日志文件" >> $GITHUB_STEP_SUMMARY
+          echo "- 完整日志: 在Artifacts中下载 \`job-scout-logs-${{ github.run_number }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- 保留期: 30天" >> $GITHUB_STEP_SUMMARY
+
+      # Step 12: 失败时的错误处理
+      - name: Handle failure
+        if: failure()
+        run: |
+          echo "❌ Job Scout execution failed!"
+          echo ""
+          echo "## ⚠️ 执行失败详情" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "请查看上方的日志输出，或从Artifacts下载完整日志。" >> $GITHUB_STEP_SUMMARY
+
+          # 显示最后50行日志
+          if [ -f "logs/job_scout_execution.log" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📋 最近日志" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -50 logs/job_scout_execution.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # TODO: 这里可以添加企业微信/钉钉/邮件通知
+          # curl -X POST ${{ secrets.WEBHOOK_URL }} -d '...'
