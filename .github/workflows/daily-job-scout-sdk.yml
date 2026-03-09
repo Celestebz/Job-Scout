@@ -52,7 +52,7 @@ jobs:
         run: |
           echo "📦 Installing Python dependencies..."
           python -m pip install --upgrade pip
-          pip install openpyxl pandas timeout-decorator
+          pip install -r requirements.txt
 
       # Step 4: 安装Claude Code CLI
       - name: Setup Claude Code CLI
