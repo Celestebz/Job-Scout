@@ -77,6 +77,9 @@ jobs:
           mkdir -p result
           mkdir -p backup
 
+          # 验证目录创建成功
+          ls -la logs result backup
+
           # 设置时区为北京时间
           sudo timedatectl set-timezone Asia/Shanghai
           echo "⏰ Timezone set to Asia/Shanghai"
@@ -100,17 +103,21 @@ jobs:
       # Step 7: 备份job_history.json
       - name: Backup job history database
         run: |
+          echo "📦 Starting backup process..."
+          ls -la
+
           if [ -f "job_history.json" ]; then
             BACKUP_FILE="backup/job_history_$(date +%Y%m%d_%H%M%S).json"
+            echo "Creating backup: $BACKUP_FILE"
             cp job_history.json "$BACKUP_FILE"
-            echo "💾 Backup created: $BACKUP_FILE"
+            echo "✅ Backup created: $BACKUP_FILE"
             echo "📊 Total jobs in database:"
-            cat job_history.json | jq '.total_jobs // 0'
+            cat job_history.json | jq '.total_jobs // 0' || echo "0"
 
             # 只保留最近30天的备份
-            find backup/ -name "job_history_*.json" -mtime +30 -delete
+            find backup/ -name "job_history_*.json" -mtime +30 -delete 2>/dev/null || true
           else
-            echo "ℹ️ No existing job_history.json found"
+            echo "ℹ️ No existing job_history.json found, skipping backup"
           fi
 
       # Step 8: 执行Job Scout技能

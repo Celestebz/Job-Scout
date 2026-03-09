@@ -84,7 +84,6 @@ class JobScoutGitHubActionsExecutor:
         3. 在GitHub Actions中安装和运行Claude Code CLI是经过验证的方案
         """
         import subprocess
-import timeout_decorator
 
         logger.info("🚀 Executing job-scout using Claude Code CLI...")
 
