@@ -75,13 +75,18 @@ jobs:
           echo "✅ Claude Code CLI installed successfully"
           claude --version
 
-      # Step 5: 创建必要的目录
-      - name: Create directories
+      # Step 5: 创建必要的目录并清理旧结果
+      - name: Create directories and clean old results
         run: |
           echo "📁 Creating directories..."
           mkdir -p logs
           mkdir -p result
           mkdir -p backup
+
+          # 清理旧的result文件，只保留本次结果
+          echo "🧹 Cleaning old result files..."
+          rm -f result/*.xlsx
+          echo "✅ Old result files cleaned"
 
           # 验证目录创建成功
           ls -la logs result backup
@@ -175,16 +180,20 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
 
+          # 生成 HTML 报告（用于 GitHub Pages）
+          python scripts/generate_html_report.py
+
           # 添加job_history.json（必须，用于去重）
           git add job_history.json
 
           # 添加最新的XLSX报告
           if ls result/*.xlsx 1> /dev/null 2>&1; then
             git add result/*.xlsx
-
-            # 清理超过30天的旧报告
-            find result/ -name "*.xlsx" -mtime +30 -delete
           fi
+
+          # 添加 HTML 报告
+          git add result/index.html
+          git add docs/index.html
 
           # 添加执行摘要
           if [ -f "logs/last-run-summary.txt" ]; then
