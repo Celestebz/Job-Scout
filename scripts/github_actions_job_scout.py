@@ -96,23 +96,12 @@ class JobScoutGitHubActionsExecutor:
             with open(skill_file, 'r', encoding='utf-8') as f:
                 skill_content = f.read()
 
-            # 提取 skill 定义部分（从 --- 到 --- 之间的内容）
-            skill_def = ""
-            in_skill_def = False
-            for line in skill_content.split('\n'):
-                if line.strip() == '---':
-                    if not in_skill_def:
-                        in_skill_def = True
-                    else:
-                        break
-                elif in_skill_def:
-                    skill_def += line + "\n"
+            # 使用整个 SKILL.md 作为系统提示词
+            # 这确保了所有的 Workflow、验证规则和静默执行协议都被包含在内
+            skill_def = skill_content
 
-            # 构建命令 - 使用 --system 传入技能内容
-            prompt = f"""请执行以下技能任务：{skill_def}
-
-用户请求：帮我找工作"""
-
+            # 构建命令 - 使用 --system-prompt 传入技能内容
+            # 注意：将 skill_def 放在 --system-prompt 中，用户意图放在最后
             cmd = [
                 "claude",
                 "--print",
