@@ -20,6 +20,9 @@ env:
   PYTHON_VERSION: '3.11'
   PROJECT_DIR: '/__w/面试skill/面试skill/skills/job-scout'
   USER_ID: 'wangbaozhen'
+  # 云雾API配置
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  ANTHROPIC_BASE_URL: https://yunwu.ai/v1
 
 jobs:
   job-scout-daily:
