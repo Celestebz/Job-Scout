@@ -56,16 +56,22 @@ jobs:
 
       # Step 4: 安装Claude Code CLI
       - name: Setup Claude Code CLI
+        shell: bash
         run: |
           echo "🔧 Installing Claude Code CLI..."
-          curl -fsSL https://claude.ai/install.sh | sh
+
+          # 使用bash执行安装脚本
+          curl -fsSL https://claude.ai/install.sh | bash
+
+          # 添加到PATH
           echo "$HOME/.claude/bin" >> $GITHUB_PATH
 
           # 验证安装
-          claude --version || {
+          if ! claude --version; then
             echo "❌ Claude Code CLI installation failed"
             exit 1
-          }
+          fi
+
           echo "✅ Claude Code CLI installed successfully"
           claude --version
 
