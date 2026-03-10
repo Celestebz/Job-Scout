@@ -116,11 +116,11 @@ class JobScoutGitHubActionsExecutor:
             cmd = [
                 "claude",
                 "--print",
-                "--system", skill_def,
+                "--system-prompt", skill_def,
                 "帮我找工作"
             ]
 
-            logger.info(f"📝 Command: claude --print --system [skill] '帮我找工作'")
+            logger.info(f"📝 Command: claude --print --system-prompt [skill] '帮我找工作'")
             logger.info(f"📝 Log file: {log_file}")
 
             # 执行命令（45分钟超时）
