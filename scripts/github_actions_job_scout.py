@@ -84,7 +84,6 @@ class JobScoutGitHubActionsExecutor:
         3. 在GitHub Actions中安装和运行Claude Code CLI是经过验证的方案
         """
         import subprocess
-        import shutil
 
         logger.info("🚀 Executing job-scout using Claude Code CLI...")
 
@@ -92,22 +91,36 @@ class JobScoutGitHubActionsExecutor:
         log_file = self.logs_dir / f"daily-run-{timestamp}.log"
 
         try:
-            # 复制技能文件到 Claude Code 技能目录
-            skill_src = self.project_root / "SKILL.md"
-            skill_dest = Path.home() / ".claude" / "skills" / "job-scout" / "skill.md"
-            skill_dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy(skill_src, skill_dest)
-            logger.info(f"✅ Skill file copied to {skill_dest}")
+            # 读取技能文件内容
+            skill_file = self.project_root / "SKILL.md"
+            with open(skill_file, 'r', encoding='utf-8') as f:
+                skill_content = f.read()
 
-            # 构建命令
+            # 提取 skill 定义部分（从 --- 到 --- 之间的内容）
+            skill_def = ""
+            in_skill_def = False
+            for line in skill_content.split('\n'):
+                if line.strip() == '---':
+                    if not in_skill_def:
+                        in_skill_def = True
+                    else:
+                        break
+                elif in_skill_def:
+                    skill_def += line + "\n"
+
+            # 构建命令 - 使用 --system 传入技能内容
+            prompt = f"""请执行以下技能任务：{skill_def}
+
+用户请求：帮我找工作"""
+
             cmd = [
                 "claude",
                 "--print",
-                "/job-scout",
+                "--system", skill_def,
                 "帮我找工作"
             ]
 
-            logger.info(f"📝 Command: {' '.join(cmd)}")
+            logger.info(f"📝 Command: claude --print --system [skill] '帮我找工作'")
             logger.info(f"📝 Log file: {log_file}")
 
             # 执行命令（45分钟超时）
