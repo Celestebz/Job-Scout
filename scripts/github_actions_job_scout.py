@@ -91,9 +91,11 @@ class JobScoutGitHubActionsExecutor:
         log_file = self.logs_dir / f"daily-run-{timestamp}.log"
 
         try:
-            # 构建命令
+            # 构建命令 - 指定技能文件路径
+            skill_file = self.project_root / "SKILL.md"
             cmd = [
                 "claude",
+                "--skills-path", str(skill_file),
                 "/job-scout",
                 "帮我找工作"
             ]
