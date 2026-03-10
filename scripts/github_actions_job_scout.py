@@ -84,6 +84,7 @@ class JobScoutGitHubActionsExecutor:
         3. 在GitHub Actions中安装和运行Claude Code CLI是经过验证的方案
         """
         import subprocess
+        import shutil
 
         logger.info("🚀 Executing job-scout using Claude Code CLI...")
 
@@ -91,11 +92,17 @@ class JobScoutGitHubActionsExecutor:
         log_file = self.logs_dir / f"daily-run-{timestamp}.log"
 
         try:
-            # 构建命令 - 指定技能文件路径
-            skill_file = self.project_root / "SKILL.md"
+            # 复制技能文件到 Claude Code 技能目录
+            skill_src = self.project_root / "SKILL.md"
+            skill_dest = Path.home() / ".claude" / "skills" / "job-scout" / "skill.md"
+            skill_dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(skill_src, skill_dest)
+            logger.info(f"✅ Skill file copied to {skill_dest}")
+
+            # 构建命令
             cmd = [
                 "claude",
-                "--skills-path", str(skill_file),
+                "--print",
                 "/job-scout",
                 "帮我找工作"
             ]
