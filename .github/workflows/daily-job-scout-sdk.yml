@@ -2,9 +2,10 @@ name: Daily Job Scout (Claude Code CLI)
 
 # 触发条件
 on:
-  # 定时执行：UTC 01:00 = 北京时间 09:00, UTC 10:00 = 北京时间 18:00
-  schedule:
-    - cron: '0 1,10 * * *'
+  # ⚠️ 定时任务已禁用 - 仅保留手动触发
+  # 如需重新启用，请取消下方 schedule 的注释
+  # schedule:
+  #   - cron: '0 1,10 * * *'  # UTC 01:00 = 北京时间 09:00, UTC 10:00 = 北京时间 18:00
 
   # 支持手动触发
   workflow_dispatch:
